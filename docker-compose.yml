@@ -1,0 +1,42 @@
+x-node: &x-node
+  build:
+    context: .
+  volumes:
+    - ./:/app:cached
+    # Saving node_modules to the docker volume to speed up the installation.
+    - node_modules_volume:/app/node_modules
+    - yarn_volume:/usr/local/share/.cache/yarn
+
+services:
+  gatsby:
+    <<: *x-node
+    command:
+      - yarn
+      - gatsby
+      - develop
+      - --host=0.0.0.0
+    ports:
+      - 8000:8000
+    depends_on:
+      yarn:
+        condition: service_completed_successfully
+
+  yarn:
+    <<: *x-node
+    command:
+      - yarn
+      - install
+
+  cypress:
+    <<: *x-node
+    image: cypress/included:12.3.0
+    platform: linux/amd64
+    depends_on:
+      - gatsby
+    working_dir: /app
+    environment:
+      - CYPRESS_baseUrl=http://gatsby:8000
+
+volumes:
+  node_modules_volume:
+  yarn_volume:
